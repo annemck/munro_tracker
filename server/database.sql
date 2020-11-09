@@ -23,3 +23,21 @@ CREATE TABLE climbed_munros(
   friends_ids INTEGER[],
   other_friends TEXT[]
 );
+
+CREATE EXTENSION pgcrypto;
+
+CREATE OR REPLACE FUNCTION fn_secure_password()
+RETURNS trigger AS '
+  BEGIN
+    new.password := crypt(new.password, gen_salt(''bf''));
+    RETURN NEW;
+  END'
+LANGUAGE 'plpgsql';
+
+CREATE TRIGGER tg_secure_password BEFORE INSERT OR UPDATE OF password
+ON users
+FOR EACH ROW
+EXECUTE PROCEDURE fn_secure_password();
+
+INSERT INTO users (first_name, second_name, email, password)
+VALUES ('Test', 'User', 'fake@email.fake', 'password');
