@@ -12,14 +12,14 @@ CREATE TABLE users(
 );
 
 CREATE TABLE friends(
-  user_id INTEGER FOREIGN KEY REFERENCES users(user_id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
   friend_ids INTEGER[]
 );
 
 CREATE TABLE climbed_munros(
-  user_id INTEGER FOREIGN KEY REFERENCES users(user_id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
   munro_smcid CHAR(4) NOT NULL UNIQUE,
   date_climbed DATE DEFAULT current_date,
   friends_ids INTEGER[],
-  other_friends TEXT[],
+  other_friends TEXT[]
 );
