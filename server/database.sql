@@ -37,8 +37,6 @@ CREATE INDEX inx_friend_ids_list ON friends USING gin (friend_ids);
 
 CREATE INDEX inx_friend_ids_climbed_with ON climbed_munros USING gin (friends_ids);
 
-CREATE INDEX inx_other_friends_climbed_with ON climbed_munros USING gin (other_friends);
-
 
 /**/
 /*CREATION OF FUNCTIONS FOR TRIGGERS*/
@@ -51,14 +49,31 @@ RETURNS trigger AS '
   END'
 LANGUAGE 'plpgsql';
 
-CREATE OR REPLACE FUNCTION fn_remove_from_friend_lists()
-RETURNS TRIGGER AS '
+CREATE OR REPLACE FUNCTION fn_remove_user_from_friends_lists(old_id INTEGER)
+RETURNS VOID AS '
   BEGIN
     UPDATE friends
-    SET friend_ids = array_remove(friend_ids, old.user_id)
-    WHERE old.user_id=ANY(friend_ids);
+    SET friend_ids = array_remove(friend_ids, old_id)
+    WHERE old_id=ANY(friend_ids);
+  END;'
+LANGUAGE 'plpgsql';
+
+CREATE OR REPLACE FUNCTION fn_remove_user_from_friends_climbed_list(old_id INTEGER)
+RETURNS VOID AS '
+  BEGIN
+    UPDATE climbed_munros
+    SET friends_ids = array_remove(friends_ids, old_id)
+    WHERE old_id=ANY(friends_ids);
+  END;'
+LANGUAGE 'plpgsql';
+
+CREATE OR REPLACE FUNCTION fn_remove_user_from_lists()
+RETURNS TRIGGER AS $$
+  BEGIN
+    PERFORM fn_remove_user_from_friends_climbed_list(old.user_id);
+    PERFORM fn_remove_user_from_friends_lists(old.user_id);
     RETURN OLD;
-  END'
+  END;$$
 LANGUAGE 'plpgsql';
 
 
@@ -70,10 +85,10 @@ ON users
 FOR EACH ROW
 EXECUTE PROCEDURE fn_secure_password();
 
-CREATE TRIGGER tg_remove_from_friend_lists BEFORE DELETE
+CREATE TRIGGER tg_remove_from_friends_lists BEFORE DELETE
 ON users
 FOR EACH ROW
-EXECUTE PROCEDURE fn_remove_from_friend_lists();
+EXECUTE PROCEDURE fn_remove_user_from_lists();
 
 
 
